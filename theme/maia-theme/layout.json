@@ -1,0 +1,118 @@
+{
+  "version": 1,
+  "root": [
+    {
+      "id": "n51bd571c",
+      "type": "panel",
+      "name": "Sessão / energia",
+      "orientation": "row",
+      "position": "top-left",
+      "width": "auto",
+      "height": "auto",
+      "align": "center",
+      "justify": "start",
+      "gap": 26,
+      "paddingX": 0,
+      "paddingY": 0,
+      "blur": 0,
+      "dim": 0,
+      "tint": "",
+      "noise": 0,
+      "bg": "",
+      "border": "",
+      "borderWidth": 1,
+      "radius": 0,
+      "children": [
+        {
+          "id": "naf5df386",
+          "type": "sessionButton"
+        },
+        {
+          "id": "nb076716c",
+          "type": "rebootButton"
+        },
+        {
+          "id": "n5644fed7",
+          "type": "powerButton"
+        }
+      ]
+    },
+    {
+      "id": "n812d930e",
+      "type": "panel",
+      "name": "Relógio",
+      "orientation": "column",
+      "position": "top-right",
+      "width": "auto",
+      "height": "auto",
+      "align": "start",
+      "justify": "start",
+      "gap": 4,
+      "paddingX": 0,
+      "paddingY": 0,
+      "blur": 0,
+      "dim": 0,
+      "tint": "",
+      "noise": 0,
+      "bg": "",
+      "border": "",
+      "borderWidth": 1,
+      "radius": 0,
+      "children": [
+        {
+          "id": "ne664772b",
+          "type": "date"
+        },
+        {
+          "id": "n221a39c1",
+          "type": "clock"
+        }
+      ]
+    },
+    {
+      "id": "n90833dc9",
+      "type": "panel",
+      "name": "Login",
+      "orientation": "column",
+      "position": "bottom-left",
+      "width": "auto",
+      "height": "auto",
+      "align": "start",
+      "justify": "start",
+      "gap": 14,
+      "paddingX": 0,
+      "paddingY": 0,
+      "blur": 0,
+      "dim": 0,
+      "tint": "",
+      "noise": 0,
+      "bg": "",
+      "border": "",
+      "borderWidth": 1,
+      "radius": 0,
+      "children": [
+        {
+          "id": "nea517c33",
+          "type": "usernameRow",
+          "carousel": true
+        },
+        {
+          "id": "nc988b67d",
+          "type": "userHandle"
+        },
+        {
+          "id": "n090509cb",
+          "type": "password"
+        },
+        {
+          "id": "n26a4a4ae",
+          "type": "loginButton"
+        },
+        {
+          "id": "nb60bb904",
+          "type": "errorMessage"
+        }
+      ]
+    }
+  ]
+}
