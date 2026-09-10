@@ -1,4 +1,4 @@
-"""Resolução de caminhos: tema embutido, cópia de trabalho e alvos do sistema."""
+"""Path resolution: bundled theme, working copy, and system targets."""
 
 from __future__ import annotations
 
@@ -8,7 +8,7 @@ from pathlib import Path
 
 THEME_NAME = "maia-theme"
 
-# Alvos no sistema (escritos pelo apply.py com privilégio)
+# System targets (written by apply.py with privilege)
 SYSTEM_THEMES_DIR = Path("/usr/share/sddm/themes")
 SYSTEM_THEME_DIR = SYSTEM_THEMES_DIR / THEME_NAME
 SDDM_CONF = Path("/etc/sddm.conf")
@@ -28,7 +28,7 @@ def app_data_dir() -> Path:
 
 
 def work_theme_dir() -> Path:
-    """Cópia de trabalho do tema — onde o app escreve e de onde o preview lê."""
+    """Working copy of the theme — where the app writes and the preview reads."""
     return app_data_dir() / "work" / THEME_NAME
 
 
@@ -39,9 +39,9 @@ def backups_dir() -> Path:
 def _candidate_bundled_theme_dirs() -> list[Path]:
     here = Path(__file__).resolve()
     return [
-        # rodando do repo: <repo>/sddmforge/paths.py -> <repo>/theme/maia-theme
+        # running from the repo: <repo>/sddmforge/paths.py -> <repo>/theme/maia-theme
         here.parent.parent / "theme" / THEME_NAME,
-        # instalado: <data>/sddm-forge/theme/maia-theme junto do pacote
+        # installed: <data>/sddm-forge/theme/maia-theme next to the package
         here.parent.parent / "share" / "sddm-forge" / "theme" / THEME_NAME,
         xdg_data_home() / "sddm-forge" / "bundled-theme" / THEME_NAME,
         Path("/usr/share/sddm-forge/theme") / THEME_NAME,
@@ -53,14 +53,14 @@ def bundled_theme_dir() -> Path:
         if (cand / "Main.qml").is_file():
             return cand
     raise FileNotFoundError(
-        "tema embutido não encontrado (procurei em: "
+        "bundled theme not found (looked in: "
         + ", ".join(str(p) for p in _candidate_bundled_theme_dirs())
         + ")"
     )
 
 
 def ensure_work_theme() -> Path:
-    """Garante a cópia de trabalho; semeia do tema embutido se faltar Main.qml."""
+    """Ensure the working copy; seed it from the bundled theme if Main.qml is missing."""
     work = work_theme_dir()
     work.mkdir(parents=True, exist_ok=True)
     if not (work / "Main.qml").is_file():
@@ -75,7 +75,7 @@ def ensure_work_theme() -> Path:
 
 
 def reseed_work_theme() -> Path:
-    """Recopia Main.qml/metadata/assets do embutido, preservando theme.conf."""
+    """Re-copy Main.qml/metadata/assets from the bundle, keeping theme.conf."""
     work = ensure_work_theme()
     src = bundled_theme_dir()
     for item in src.iterdir():
@@ -90,23 +90,23 @@ def reseed_work_theme() -> Path:
 
 
 def _newer(a: Path, b: Path) -> bool:
-    """True se `a` existe e está mais novo (ou `b` não existe)."""
+    """True if `a` exists and is newer (or `b` does not exist)."""
     if not b.exists():
         return True
     return a.stat().st_mtime > b.stat().st_mtime + 1
 
 
 def sync_work_theme() -> Path:
-    """Mantém o QML da cópia de trabalho em dia com o embutido, sem tocar no
-    theme.conf. Chamada a cada início: o Main.qml é código do app, não do
-    usuário — nunca deve ficar defasado."""
+    """Keep the working copy's QML in sync with the bundle, without touching
+    theme.conf. Called on every start: Main.qml is app code, not the user's —
+    it must never fall behind."""
     work = ensure_work_theme()
     src = bundled_theme_dir()
     for name in ("Main.qml", "metadata.desktop"):
         s = src / name
         if s.is_file() and _newer(s, work / name):
             shutil.copy2(s, work / name)
-    # layout.json é estado do usuário: só semeia se faltar
+    # layout.json is user state: only seed it if missing
     seed_layout = src / "layout.json"
     if seed_layout.is_file() and not (work / "layout.json").is_file():
         shutil.copy2(seed_layout, work / "layout.json")

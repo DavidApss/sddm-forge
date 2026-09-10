@@ -1,6 +1,6 @@
 [Desktop Entry]
 Name=Maia Theme
-Comment=Tema SDDM parametrizável (sddm-forge)
+Comment=Configurable SDDM theme (sddm-forge)
 Type=sddm-theme
 Version=1.0
 MainScript=Main.qml

@@ -1,15 +1,21 @@
 #!/usr/bin/env python3
-"""Launcher do sddm-forge (funciona rodando do repo ou instalado)."""
+"""sddm-forge launcher (works both from the repo and installed)."""
 
 import os
 import sys
 from pathlib import Path
 
+# adw-gtk3 set as GTK_THEME freezes the accent color of libadwaita apps to blue
+# (and interferes with dark mode). sddm-forge wants to follow the system theme,
+# so we drop that override before GTK loads.
+if "adw-gtk3" in os.environ.get("GTK_THEME", ""):
+    del os.environ["GTK_THEME"]
+
 _here = Path(__file__).resolve()
 
-# Candidatos onde o pacote `sddmforge` pode estar:
+# Where the `sddmforge` package might live:
 #  - repo:      <repo>/bin/sddm-forge      -> <repo>
-#  - instalado: ~/.local/bin/sddm-forge    -> ~/.local/share/sddm-forge
+#  - installed: ~/.local/bin/sddm-forge    -> ~/.local/share/sddm-forge
 _candidates = [
     _here.parent.parent,
     Path(os.environ.get("XDG_DATA_HOME", Path.home() / ".local/share")) / "sddm-forge",

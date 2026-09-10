@@ -4,7 +4,7 @@
     {
       "id": "n51bd571c",
       "type": "panel",
-      "name": "Sessão / energia",
+      "name": "Session / power",
       "orientation": "row",
       "position": "top-left",
       "width": "auto",
@@ -40,7 +40,7 @@
     {
       "id": "n812d930e",
       "type": "panel",
-      "name": "Relógio",
+      "name": "Clock",
       "orientation": "column",
       "position": "top-right",
       "width": "auto",

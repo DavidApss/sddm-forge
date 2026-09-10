@@ -1,9 +1,9 @@
 [Desktop Entry]
 Type=Application
 Name=sddm-forge
-Comment=Configurar o SDDM e o tema de login
+Comment=Configure SDDM and the login theme
 Exec=sddm-forge
 Icon=preferences-desktop-theme
 Terminal=false
 Categories=Settings;System;
-Keywords=sddm;login;greeter;tema;display manager;
+Keywords=sddm;login;greeter;theme;display manager;

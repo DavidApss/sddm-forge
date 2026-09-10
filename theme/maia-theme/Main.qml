@@ -5,10 +5,10 @@ import QtMultimedia
 import Qt5Compat.GraphicalEffects
 
 // ==========================================================================
-// Tema Maia — interpretador de layout.json (sddm-forge).
-// A árvore de componentes vem de `layoutProvider` (prévia) ou do arquivo
-// layout.json ao lado deste Main.qml (greeter real, via XMLHttpRequest).
-// Cores / fontes / fundo continuam em theme.conf (objeto `config`).
+// Maia Theme — layout.json interpreter (sddm-forge).
+// The component tree comes from `config.layoutJson` (base64 in theme.conf) or
+// from the layout.json file next to this Main.qml (real greeter, via
+// XMLHttpRequest). Colors / fonts / background stay in theme.conf (`config`).
 // ==========================================================================
 Rectangle {
     id: root
@@ -17,7 +17,7 @@ Rectangle {
     color: cfg.bgColor
 
     // ----------------------------------------------------------------------
-    // Config visual (theme.conf)
+    // Visual config (theme.conf)
     // ----------------------------------------------------------------------
     QtObject {
         id: cfg
@@ -55,8 +55,8 @@ Rectangle {
         readonly property int passwordWidth: num(config.passwordWidth, 280)
 
         readonly property string clockFormat: str(config.clockFormat, "hh:mm")
-        readonly property string dateFormat: str(config.dateFormat, "dddd, d 'de' MMMM")
-        readonly property string dateLocale: str(config.dateLocale, "pt_BR")
+        readonly property string dateFormat: str(config.dateFormat, "dddd, MMMM d")
+        readonly property string dateLocale: str(config.dateLocale, "en_US")
 
         readonly property string inputStyle: str(config.inputStyle, "underline")
         readonly property string buttonStyle: str(config.buttonStyle, "outline")
@@ -69,7 +69,7 @@ Rectangle {
     }
 
     // ----------------------------------------------------------------------
-    // Estado compartilhado
+    // Shared state
     // ----------------------------------------------------------------------
     property var userList: []
     property int userIndex: 0
@@ -84,7 +84,7 @@ Rectangle {
     property bool showPassword: false
     property var now: new Date()
 
-    // overrides opcionais por nó (accent / size / bold)
+    // optional per-node overrides (accent / size / bold)
     function ovColor(node, dflt) {
         return (node && node.accent && node.accent !== "") ? node.accent : dflt
     }
@@ -96,13 +96,13 @@ Rectangle {
     }
 
     property var layoutTree: parseLayout()
-    onLayoutTreeChanged: syncPanels()   // reage a config.layoutJson
-    property bool animate: false        // liga as transições depois do 1º frame
+    onLayoutTreeChanged: syncPanels()   // reacts to config.layoutJson
+    property bool animate: false        // enables transitions after the 1st frame
     readonly property bool previewMode: String(config.previewMode || "") === "1"
 
     function displayName(u) {
         if (!u)
-            return "Usuário"
+            return "User"
         return (u.realName && u.realName !== "") ? u.realName : u.name
     }
     function clearPassword() { if (passwordField) passwordField.text = "" }
@@ -136,11 +136,11 @@ Rectangle {
     }
 
     // ----------------------------------------------------------------------
-    // Layout: leitura e reação
+    // Layout: reading and reacting
     // ----------------------------------------------------------------------
     function parseLayout() {
-        // fonte principal: string em base64 no theme.conf (o SDDM remove aspas
-        // de valores, então JSON puro não sobreviveria). Reativa via `config`.
+        // primary source: base64 string in theme.conf (SDDM strips quotes from
+        // values, so raw JSON wouldn't survive). Reactive via `config`.
         try {
             var raw = config.layoutJson ? String(config.layoutJson) : ""
             if (raw.length > 0) {
@@ -150,7 +150,7 @@ Rectangle {
         } catch (e) {
             console.warn("config.layoutJson:", e)
         }
-        // fallback: arquivo layout.json ao lado (temas antigos)
+        // fallback: layout.json file alongside (older themes)
         try {
             var xhr = new XMLHttpRequest()
             xhr.open("GET", Qt.resolvedUrl("layout.json"), false)
@@ -190,7 +190,7 @@ Rectangle {
             return cfg.marginX
         if (p.indexOf("right") !== -1)
             return root.width - item.width - cfg.marginX
-        return (root.width - item.width) / 2   // *-center e "center"
+        return (root.width - item.width) / 2   // *-center and "center"
     }
     function panelY(node, item) {
         if (node.height === "fill")
@@ -260,7 +260,7 @@ Rectangle {
         for (var s = 0; s < sessionModel.count; s++) {
             var sidx = sessionModel.index(s, 0)
             var sname = sessionModel.data(sidx, Qt.UserRole + 4)
-            sarr.push(sname && sname !== "" ? sname : ("Sessão " + (s + 1)))
+            sarr.push(sname && sname !== "" ? sname : ("Session " + (s + 1)))
         }
         sessionList = sarr
         if (sessionModel.lastIndex >= 0 && sessionModel.lastIndex < sarr.length)
@@ -286,14 +286,14 @@ Rectangle {
     Connections {
         target: sddm
         function onLoginFailed() {
-            root.errorText = "Usuário ou senha inválidos"
+            root.errorText = "Invalid username or password"
             root.clearPassword()
         }
     }
 
     // ----------------------------------------------------------------------
-    // Modelo de painéis sincronizado in-place (mantém os delegates vivos →
-    // mudança só de propriedade anima; reordenar/criar/remover recria).
+    // Panel model synced in place (keeps the delegates alive → a property-only
+    // change animates; reorder/add/remove recreates them).
     // ----------------------------------------------------------------------
     ListModel { id: panelModel }
 
@@ -320,7 +320,7 @@ Rectangle {
     }
 
     // ======================================================================
-    // Fundo
+    // Background
     // ======================================================================
     Item {
         id: bgLayer
@@ -378,7 +378,7 @@ Rectangle {
     }
 
     // ======================================================================
-    // Interpretador da árvore
+    // Tree interpreter
     // ======================================================================
     Repeater {
         model: panelModel
@@ -387,8 +387,8 @@ Rectangle {
             sourceComponent: panelComponent
             onLoaded: {
                 item.nodeJson = Qt.binding(function () { return nodeJson })
-                // painel raiz: posiciona sozinho na tela. Sub-painel não passa
-                // por aqui — flui dentro do Grid do pai.
+                // root panel: positions itself on screen. A sub-panel doesn't
+                // go through here — it flows inside the parent's Grid.
                 item.x = Qt.binding(function () { return root.panelX(item.n, item) })
                 item.y = Qt.binding(function () { return root.panelY(item.n, item) })
             }
@@ -401,7 +401,7 @@ Rectangle {
         Item {
             id: pnl
             property string nodeJson: ""
-            // sub-painel: setado pelo Loader do pai. Muda como posiciona/mede.
+            // sub-panel: set by the parent's Loader. Changes how it positions/measures.
             property Item parentPanel: null
             readonly property bool nested: parentPanel !== null
             readonly property var n: {
@@ -413,7 +413,7 @@ Rectangle {
                                         ? n.paddingY : (n.padding || 0)
             readonly property var kids: n.children || []
             readonly property int blurAmt: n.blur || 0
-            // base p/ larguras/alturas em % e "fill": tela (raiz) ou o pai (sub)
+            // base for % and "fill" widths/heights: screen (root) or parent (sub)
             readonly property real baseW: nested ? parentPanel.width : root.width
             readonly property real baseH: nested ? parentPanel.height : root.height
 
@@ -423,8 +423,8 @@ Rectangle {
             implicitHeight: lay.implicitHeight + 2 * padY
             width: root.sizeSpec(n.width || "auto", baseW, implicitWidth)
             height: root.sizeSpec(n.height || "auto", baseH, implicitHeight)
-            // x/y: painel raiz é posicionado pelo Loader de cima; sub-painel é
-            // posicionado pelo Grid do pai — nos dois casos, nada de bind aqui.
+            // x/y: root panel is positioned by the Loader above; a sub-panel is
+            // positioned by the parent's Grid — either way, no binding here.
 
             Behavior on x { enabled: root.animate; NumberAnimation { duration: 220; easing.type: Easing.OutCubic } }
             Behavior on y { enabled: root.animate; NumberAnimation { duration: 220; easing.type: Easing.OutCubic } }
@@ -435,14 +435,13 @@ Rectangle {
             Component.onCompleted: opacity = 1
             Behavior on opacity { NumberAnimation { duration: 160 } }
 
-            // --- vidro fosco (blur do fundo atrás do painel) ---
-            // Greeter real (GPU): MultiEffect (blur gaussiano de verdade,
-            // suave — não o box-blur do FastBlur) sobre o bgLayer inteiro,
-            // recortado ao painel pelo `clip`. É o mesmo efeito "vidro" do
-            // Sugar Candy / Makima-SDDM.
+            // --- frosted glass (blur of the background behind the panel) ---
+            // Real greeter (GPU): MultiEffect (a true, smooth gaussian blur —
+            // not FastBlur's box blur) over the whole bgLayer, clipped to the
+            // panel by `clip`. Same "glass" effect as Sugar Candy / Makima-SDDM.
             readonly property bool realBlur: pnl.blurAmt > 0 && !root.previewMode
-            // blurAmt 0..100 -> força do frost. blur satura em ~70%; acima
-            // disso o multiplier espalha mais sem virar mancha.
+            // blurAmt 0..100 -> frost strength. blur saturates around ~70%;
+            // beyond that the multiplier spreads more without smearing.
             readonly property real blurAmount: Math.min(1.0, pnl.blurAmt / 100 * 1.5)
             readonly property real blurMul: 0.7 + pnl.blurAmt / 100 * 2.3
             MultiEffect {
@@ -455,28 +454,38 @@ Rectangle {
                 blurMultiplier: pnl.blurMul
                 autoPaddingEnabled: false
             }
-            // Prévia (renderer por software, sem shaders): aproximação —
-            // renderiza o fundo em baixa resolução e deixa o upscale bilinear
-            // borrar. Não é Gaussian, mas parece muito mais com blur.
+            // Preview (software renderer, no shaders): an approximation — the
+            // background is downscaled (only a little: more turns it checkered)
+            // and a few slightly-offset copies spread the blur. Not Gaussian,
+            // but close enough.
             Item {
                 anchors.fill: parent
                 clip: true
                 visible: pnl.blurAmt > 0 && root.previewMode
-                readonly property int fac: Math.max(2, Math.round(pnl.blurAmt / 100 * 26))
-                Image {
-                    x: -pnl.x
-                    y: -pnl.y
-                    width: root.width
-                    height: root.height
-                    source: cfg.backgroundImage
-                    fillMode: Image.PreserveAspectCrop
-                    sourceSize.width: Math.max(8, Math.round(root.width / parent.fac))
-                    smooth: true
-                    mipmap: true
-                    cache: true
+                // gentle downscale — at most 1/7 of the screen (~275 px), so it
+                // doesn't pixelate
+                readonly property int fac: Math.max(2, Math.min(7,
+                                           Math.round(pnl.blurAmt / 100 * 9)))
+                readonly property real spread: pnl.blurAmt / 100 * 7
+                Repeater {
+                    model: 5
+                    Image {
+                        readonly property real k: (index + 1) / 5
+                        x: -pnl.x + (index % 2 === 0 ? 1 : -1) * parent.spread * k
+                        y: -pnl.y + (index < 2 ? 1 : -1) * parent.spread * k
+                        width: root.width
+                        height: root.height
+                        source: cfg.backgroundImage
+                        fillMode: Image.PreserveAspectCrop
+                        sourceSize.width: Math.max(16, Math.round(root.width / parent.fac))
+                        smooth: true
+                        mipmap: true
+                        cache: true
+                        opacity: 1.0 / (index + 1.4)
+                    }
                 }
             }
-            // lavagem de cor (tint / bg) — aceita #aarrggbb
+            // color wash (tint / bg) — accepts #aarrggbb
             Rectangle {
                 anchors.fill: parent
                 radius: pnl.n.radius || 0
@@ -486,14 +495,14 @@ Rectangle {
                 visible: t !== ""
                 color: t !== "" ? t : "transparent"
             }
-            // escurecer (preto)
+            // darken (black)
             Rectangle {
                 anchors.fill: parent
                 radius: pnl.n.radius || 0
                 visible: (pnl.n.dim || 0) > 0
                 color: Qt.rgba(0, 0, 0, Math.min(1, (pnl.n.dim || 0) / 100))
             }
-            // granulado (efeito vidro) — bem sutil, tipo acrílico
+            // grain (glass effect) — very subtle, acrylic-like
             Image {
                 anchors.fill: parent
                 visible: (pnl.n.noise || 0) > 0
@@ -503,7 +512,7 @@ Rectangle {
                 opacity: Math.min(0.25, (pnl.n.noise || 0) / 100 * 0.25)
                 cache: true
             }
-            // filete de borda (vidro)
+            // edge line (glass)
             Rectangle {
                 anchors.fill: parent
                 radius: pnl.n.radius || 0
@@ -515,7 +524,7 @@ Rectangle {
                               ? pnl.n.border : "transparent"
             }
 
-            // --- conteúdo ---
+            // --- content ---
             Grid {
                 id: lay
                 x: (pnl.n.orientation === "row")
@@ -570,7 +579,7 @@ Rectangle {
     }
 
     // ======================================================================
-    // Ícone vetorial simples (Canvas) — power / restart / sleep / session
+    // Simple vector icon (Canvas) — power / restart / sleep / session
     // ======================================================================
     component GlyphIcon: Canvas {
         property string kind: "power"
@@ -627,7 +636,7 @@ Rectangle {
     }
 
     // ======================================================================
-    // Elementos (folhas)
+    // Elements (leaves)
     // ======================================================================
     Component {
         id: e_clock
@@ -712,7 +721,7 @@ Rectangle {
                 border.width: 1
                 border.color: cfg.accentDim
             }
-            Text {   // fallback: inicial
+            Text {   // fallback: initial
                 anchors.centerIn: parent
                 visible: img.status !== Image.Ready
                 text: root.displayName(u).charAt(0).toUpperCase()
@@ -801,7 +810,7 @@ Rectangle {
             implicitWidth: cfg.passwordWidth
             implicitHeight: style === "segmented" ? 22 : (boxed ? 42 : 40)
 
-            Rectangle {   // sublinhado
+            Rectangle {   // underline
                 visible: pwWrap.style === "underline"
                 anchors.bottom: parent.bottom
                 width: parent.width
@@ -809,7 +818,7 @@ Rectangle {
                 color: pwf.activeFocus ? cfg.accent : cfg.accentDim
                 opacity: pwf.activeFocus ? 1.0 : 0.8
             }
-            Rectangle {   // caixa / pill
+            Rectangle {   // box / pill
                 visible: pwWrap.boxed
                 anchors.fill: parent
                 radius: pwWrap.style === "pill" ? height / 2 : 4
@@ -817,7 +826,7 @@ Rectangle {
                 border.width: 1
                 border.color: pwf.activeFocus ? cfg.accent : cfg.accentDim
             }
-            Row {          // barra segmentada
+            Row {          // segmented bar
                 visible: pwWrap.style === "segmented"
                 anchors.fill: parent
                 spacing: 3
@@ -889,7 +898,7 @@ Rectangle {
             }
             Text {
                 anchors.verticalCenter: parent.verticalCenter
-                text: (node && node.text) ? node.text : "Mostrar senha"
+                text: (node && node.text) ? node.text : "Show password"
                 color: cfg.subTextColor
                 font.family: cfg.fontFamily
                 font.pixelSize: 12
@@ -908,9 +917,9 @@ Rectangle {
             id: lb
             property var node
             readonly property bool filled: cfg.buttonStyle === "fill" || cfg.buttonStyle === "pill"
-            implicitWidth: 140
+            implicitWidth: root.ovSize(node, 140)
             implicitHeight: 36
-            text: "LOGIN"
+            text: (node && node.text) ? node.text : "LOGIN"
             background: Rectangle {
                 radius: cfg.buttonStyle === "pill" ? height / 2 : 6
                 color: lb.filled ? (lb.hovered ? Qt.lighter(cfg.accent, 1.12) : cfg.accent)
@@ -943,7 +952,7 @@ Rectangle {
         }
     }
 
-    // botão de controle reutilizável (sessão / reiniciar / desligar / suspender)
+    // reusable control button (session / restart / shut down / suspend)
     component ControlButton: Button {
         id: cbtn
         property var node
@@ -994,7 +1003,7 @@ Rectangle {
         id: e_rebootButton
         ControlButton {
             glyph: "restart"
-            text: "REINICIAR"
+            text: "RESTART"
             onClicked: sddm.reboot()
         }
     }
@@ -1002,7 +1011,7 @@ Rectangle {
         id: e_powerButton
         ControlButton {
             glyph: "power"
-            text: "DESLIGAR"
+            text: "SHUT DOWN"
             onClicked: sddm.powerOff()
         }
     }
@@ -1010,7 +1019,7 @@ Rectangle {
         id: e_suspendButton
         ControlButton {
             glyph: "sleep"
-            text: "SUSPENDER"
+            text: "SUSPEND"
             onClicked: sddm.suspend()
         }
     }

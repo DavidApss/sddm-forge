@@ -1,13 +1,13 @@
-"""Aplica a configuração no sistema. RODA COMO ROOT (via pkexec).
+"""Applies the configuration to the system. RUNS AS ROOT (via pkexec).
 
-Uso:  pkexec python3 -m sddmforge.apply <spec.json>
+Usage:  pkexec python3 -m sddmforge.apply <spec.json>
 
 spec.json:
 {
   "work_theme_dir": "/home/user/.local/share/sddm-forge/theme/maia-theme",
   "dropin_text": "....",
   "enable_service": false,
-  "restore_from": null            // ou caminho de uma pasta de backup
+  "restore_from": null            // or the path to a backup folder
 }
 """
 
@@ -36,7 +36,7 @@ def _invoking_user() -> pwd.struct_passwd:
     name = os.environ.get("SUDO_USER") or os.environ.get("USER")
     if name and name != "root":
         return pwd.getpwnam(name)
-    raise SystemExit("não foi possível determinar o usuário que chamou o pkexec")
+    raise SystemExit("could not determine the user that invoked pkexec")
 
 
 def _chown_r(path: Path, uid: int, gid: int) -> None:
@@ -63,14 +63,14 @@ def _backup(user: pwd.struct_passwd) -> Path:
         manifest["dropin"] = True
     (dest / "manifest.json").write_text(json.dumps(manifest), encoding="utf-8")
 
-    # a árvore de backups toda pertence ao usuário
+    # the whole backups tree belongs to the user
     _chown_r(Path(user.pw_dir) / ".local/share/sddm-forge", user.pw_uid, user.pw_gid)
     return dest
 
 
 def _install_theme(src: Path) -> None:
     if not (src / "Main.qml").is_file():
-        raise SystemExit(f"tema de origem inválido: {src}")
+        raise SystemExit(f"invalid source theme: {src}")
     SYSTEM_THEMES_DIR.mkdir(parents=True, exist_ok=True)
     if SYSTEM_THEME_DIR.exists():
         shutil.rmtree(SYSTEM_THEME_DIR)
@@ -112,7 +112,7 @@ def _enable_service() -> None:
 
 def main(argv: list[str]) -> int:
     if os.geteuid() != 0:
-        print("apply.py precisa rodar como root (use pkexec).", file=sys.stderr)
+        print("apply.py must run as root (use pkexec).", file=sys.stderr)
         return 1
     if len(argv) != 2:
         print(__doc__, file=sys.stderr)
@@ -125,7 +125,7 @@ def main(argv: list[str]) -> int:
     restore_from = spec.get("restore_from")
     if restore_from:
         _restore(Path(restore_from))
-        print("restaurado de", restore_from)
+        print("restored from", restore_from)
         return 0
 
     work = Path(spec["work_theme_dir"])
@@ -133,7 +133,7 @@ def main(argv: list[str]) -> int:
     _write_dropin(spec["dropin_text"])
     if spec.get("enable_service"):
         _enable_service()
-    print("aplicado.")
+    print("applied.")
     return 0
 
 

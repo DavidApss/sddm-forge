@@ -1,4 +1,4 @@
-"""Pré-visualização: embutida (render offscreen) e em tela cheia (greeter real)."""
+"""Preview: embedded (offscreen render) and full screen (real greeter)."""
 
 from __future__ import annotations
 
@@ -14,7 +14,7 @@ from . import paths
 
 _GREETERS = ["sddm-greeter-qt6", "sddm-greeter"]
 
-# aresta longa máxima do render offscreen (mantém proporção da tela real)
+# max long edge of the offscreen render (keeps the real screen's aspect ratio)
 MAX_EDGE = 1920
 FALLBACK_SIZE = (1920, 1080)
 
@@ -28,7 +28,7 @@ def greeter_bin() -> str | None:
 
 
 def live_available() -> bool:
-    """A prévia embutida precisa do PySide6 (QtQuick)."""
+    """The embedded preview needs PySide6 (QtQuick)."""
     try:
         return importlib.util.find_spec("PySide6.QtQuick") is not None
     except (ImportError, ValueError):
@@ -36,7 +36,7 @@ def live_available() -> bool:
 
 
 class FullscreenPreview:
-    """Abre o `sddm-greeter-qt6 --test-mode` (render real, interativo)."""
+    """Opens `sddm-greeter-qt6 --test-mode` (real, interactive render)."""
 
     def __init__(self) -> None:
         self._proc: Gio.Subprocess | None = None
@@ -52,7 +52,7 @@ class FullscreenPreview:
     def launch(self) -> None:
         binary = greeter_bin()
         if binary is None:
-            raise FileNotFoundError("sddm-greeter-qt6 não encontrado (pacote sddm).")
+            raise FileNotFoundError("sddm-greeter-qt6 not found (sddm package).")
         self.stop()
         launcher = Gio.SubprocessLauncher.new(
             Gio.SubprocessFlags.STDOUT_SILENCE | Gio.SubprocessFlags.STDERR_SILENCE
@@ -72,7 +72,7 @@ class FullscreenPreview:
 
 
 class LivePreview:
-    """Roda o renderizador offscreen e avisa a GUI a cada frame novo (PNG)."""
+    """Runs the offscreen renderer and notifies the GUI on each new frame (PNG)."""
 
     def __init__(
         self, on_frame: Callable[[str], None], parent_window=None
@@ -82,7 +82,7 @@ class LivePreview:
         self._proc: Gio.Subprocess | None = None
         self._stdin: Gio.OutputStream | None = None
         self._stdout: Gio.DataInputStream | None = None
-        # inclui o PID: duas instâncias do app não brigam pelo mesmo arquivo
+        # includes the PID: two app instances don't fight over the same file
         import os
         self._png = Path(
             GLib.get_user_runtime_dir() or GLib.get_tmp_dir()
@@ -99,8 +99,8 @@ class LivePreview:
         return (Path(__file__).parent / "preview_render.py").resolve()
 
     def _render_size(self) -> tuple[int, int]:
-        """Resolução da tela real (a do monitor da janela), com proporção
-        preservada e aresta longa limitada a MAX_EDGE."""
+        """The real screen resolution (of the window's monitor), aspect ratio
+        preserved and long edge capped at MAX_EDGE."""
         w, h = FALLBACK_SIZE
         try:
             display = (
@@ -155,7 +155,7 @@ class LivePreview:
         self._stdin = self._proc.get_stdin_pipe()
         self._proc.wait_async(None, self._reap, None)
 
-        # o daemon escreve "frame" no stdout a cada PNG novo
+        # the daemon writes "frame" to stdout on each new PNG
         self._stdout = Gio.DataInputStream.new(self._proc.get_stdout_pipe())
         self._read_line()
 

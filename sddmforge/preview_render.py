@@ -1,13 +1,13 @@
-"""Renderizador offscreen do tema (PySide6). Processo separado da GUI.
+"""Offscreen theme renderer (PySide6). Separate process from the GUI.
 
-Uso:
+Usage:
     python3 -m sddmforge.preview_render <work_theme_dir> <out_png> [W] [H]
 
-- Carrega o Main.qml do tema com stubs no lugar dos objetos do SDDM
+- Loads the theme's Main.qml with stubs in place of the SDDM objects
   (config, sddm, userModel, sessionModel).
-- Observa o theme.conf: quando muda, atualiza o `config` (QQmlPropertyMap,
-  reativo) e regrava o PNG.
-- Um comando "grab" ou "anim on/off" pode chegar pelo stdin.
+- Watches theme.conf: when it changes, updates `config` (a reactive
+  QQmlPropertyMap) and re-writes the PNG.
+- A "grab" or "anim on/off" command can arrive on stdin.
 """
 
 from __future__ import annotations
@@ -39,7 +39,7 @@ from PySide6.QtQml import QQmlPropertyMap  # noqa: E402
 from PySide6.QtQuick import QQuickView  # noqa: E402
 
 
-# --- stubs dos objetos que o SDDM injeta -----------------------------------
+# --- stubs for the objects SDDM injects -----------------------------------
 class SddmStub(QObject):
     loginFailed = Signal()
     loginSucceeded = Signal()
@@ -71,7 +71,7 @@ SESSION_NAME = Qt.UserRole + 4
 
 
 class ListStub(QObject):
-    """Imita o suficiente de QAbstractItemModel para o Main.qml."""
+    """Mimics enough of QAbstractItemModel for Main.qml."""
 
     def __init__(self, rows: list[dict], last_user: str = "", last_index: int = 0):
         super().__init__()
@@ -106,14 +106,14 @@ class ListStub(QObject):
 
 def make_user_model() -> ListStub:
     rows = [
-        {USER_NAME: "maiajota", USER_REAL: "Maia"},
-        {USER_NAME: "convidado", USER_REAL: "Convidado"},
+        {USER_NAME: "alex", USER_REAL: "Alex"},
+        {USER_NAME: "guest", USER_REAL: "Guest"},
     ]
-    return ListStub(rows, last_user="maiajota")
+    return ListStub(rows, last_user="alex")
 
 
 def make_session_model() -> ListStub:
-    rows = [{SESSION_NAME: "niri"}, {SESSION_NAME: "Plasma (Wayland)"}]
+    rows = [{SESSION_NAME: "Plasma (Wayland)"}, {SESSION_NAME: "GNOME"}]
     return ListStub(rows, last_index=0)
 
 
@@ -134,7 +134,7 @@ class Renderer(QObject):
         self.view.setColor(Qt.black)
         self.view.setResizeMode(QQuickView.SizeRootObjectToView)
         self.view.resize(*size)
-        # guardar refs — setContextProperty não assume posse (senão o GC leva)
+        # keep refs — setContextProperty doesn't take ownership (else GC drops them)
         self._sddm = SddmStub(self)
         self._user_model = make_user_model()
         self._session_model = make_session_model()
@@ -178,14 +178,14 @@ class Renderer(QObject):
             return
         values = dict(parser.items("General"))
 
-        # O sink de vídeo do QtMultimedia não funciona offscreen: em modo
-        # "video" mostramos um frame estático do vídeo como imagem.
+        # QtMultimedia's video sink doesn't work offscreen: in "video" mode we
+        # show a static frame of the video as an image.
         if values.get("backgroundMode") == "video":
             poster = self._video_poster(values.get("backgroundVideo", ""))
             if poster:
                 values["backgroundMode"] = "image"
                 values["background"] = poster
-                # em modo vídeo o tema usa o blur leve (videoBlurRadius)
+                # in video mode the theme uses the lighter blur (videoBlurRadius)
                 values["blurRadius"] = values.get("videoBlurRadius", "4")
                 self.is_video_fallback = True
         else:
@@ -229,8 +229,8 @@ class Renderer(QObject):
         img = self.view.grabWindow()
         if img.isNull():
             return
-        # grava atômico (tmp + rename) e só então sinaliza pelo stdout — a GUI
-        # é avisada pelo stdout, não por watcher de arquivo, então o rename é ok
+        # atomic write (tmp + rename), then signal via stdout — the GUI is
+        # notified through stdout, not a file watcher, so the rename is fine
         if img.save(str(self.out_tmp), "PNG"):
             os.replace(self.out_tmp, self.out_png)
             sys.stdout.write("frame\n")
@@ -265,7 +265,7 @@ def main(argv: list[str]) -> int:
 
     def on_stdin(_fd):
         data = sys.stdin.readline()
-        if not data:  # EOF: GUI fechou
+        if not data:  # EOF: the GUI closed
             app.quit()
             return
         renderer.handle_command(data)

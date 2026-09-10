@@ -1,82 +1,80 @@
 # sddm-forge
 
-App GTK4/libadwaita para configurar o **SDDM** e o tema de login ("Maia Theme"),
-sem editar QML na mão. Uso pessoal, Fedora.
+A GTK4/libadwaita app to configure **SDDM** and its login theme ("Maia Theme")
+without hand-editing QML.
 
-## O que dá pra mexer
+## App layout
 
-- **Prévia** — render do tema **ao vivo dentro do app**, atualiza sozinho a cada
-  ajuste. Botão "tela cheia" abre o greeter real (com vídeo) por cima.
-- **Aparência** — fundo (vídeo / imagem / cor), blur, escurecimento, paleta de
-  cores, fonte e tamanhos.
-- **Layout** — editor de árvore: cria **painéis** (contêineres) e escolhe o que
-  vai em cada um. Por painel: posição, direção (coluna/linha), largura (auto /
-  % da tela / tela inteira), alinhamento, espaçamento, recuo, **blur do fundo
-  atrás do painel**, escurecimento, canto arredondado. Adicionar / remover /
-  reordenar painéis, sub-painéis e elementos. Peças:
-  `clock, date, usernameRow, userHandle, password, loginButton, sessionButton,
-  rebootButton, powerButton, errorMessage, text` (livre) e `spacer`.
-  A visibilidade de cada peça = estar (ou não) num painel — ex.: relógio sem o
-  dia da semana é um painel só com `clock`. Reordena por **arrastar** (ou ↑↓).
-  Peças: clock, date, usernameRow, userHandle, **avatar**, password,
-  **passwordToggle** (mostrar senha), loginButton, sessionButton,
-  **sessionName**, rebootButton, powerButton, **suspendButton**, errorMessage,
-  text (livre), **separator**, spacer. Cada peça de texto aceita **cor /
-  tamanho / negrito** próprios.
-- **Aparência → Estilo dos widgets** — presets: campo de senha
-  (sublinhado / caixa / pílula / barra segmentada), botão LOGIN
-  (contorno / preenchido / pílula), botões de sessão-energia
-  (texto / contorno / pílula) e **ícones** neles (sem / só ícone / ícone+texto).
-- **Elementos** — quais botões e textos aparecem (sessão, reiniciar, desligar,
-  carrossel de usuário, `@usuario`, boas-vindas).
-- **Relógio** — formato da hora e da data, locale.
-- **SDDM** — Numlock, tema de cursor, fonte do greeter, HiDPI.
-- **Autologin** — usuário e sessão.
-- **Usuários** — faixa de UID, `HideUsers`, `HideShells`.
-- **Temas** — trocar o `[Theme] Current`, (re)instalar o tema embutido, habilitar
-  o serviço no boot.
-- **Backup** — snapshot automático antes de cada "Aplicar"; restaurar qualquer um.
+Sidebar (sections) · settings panel · **live preview**. The preview stays in
+view — every change shows up in it right away — and collapses via the header
+button or on its own in narrow windows. It follows the system theme (light/dark
+and accent color). The **Full screen** button opens the real greeter (with
+video) on top.
 
-## Como funciona
+## What you can change
 
-- A GUI roda como usuário normal e edita uma **cópia de trabalho** do tema em
-  `~/.local/share/sddm-forge/work/maia-theme/` (semeada do tema embutido).
-- A aba **Prévia** roda um renderizador QML offscreen (PySide6) num processo
-  separado, que observa o `theme.conf` da cópia de trabalho e regrava um PNG a
-  cada mudança. O vídeo de fundo não roda offscreen: em modo "vídeo" a prévia
-  mostra o **primeiro frame** do arquivo (extraído com ffmpeg). Usuários são
-  fictícios. Para o render fiel, o botão **tela cheia** abre
+- **Appearance** — background (video / image / color), blur, dimming, color
+  palette, font and sizes, and **widget style** (presets for the password field,
+  the LOGIN button, and the session/power buttons).
+- **Layout** — a tree editor: create **panels** (containers) and choose what
+  goes in each one. Per panel: position, direction (column/row), width (auto /
+  % of the screen / full screen), alignment, spacing, padding, **blur of the
+  background behind the panel**, dimming, corner radius. Add / remove / reorder
+  panels, sub-panels, and elements. Reorder by **drag** (or ↑↓). Each element's
+  visibility = whether it sits in a panel — e.g. a clock with no weekday is a
+  panel with only `clock`. Pieces: clock, date, usernameRow, userHandle,
+  avatar, password, passwordToggle (show password), loginButton, sessionButton,
+  sessionName, rebootButton, powerButton, suspendButton, errorMessage, text
+  (free), separator, spacer. Each text piece takes its own **color / size /
+  bold**.
+- **Clock** — time and date format, locale.
+- **System** — the SDDM drop-in: automatic login (user / session / relogin),
+  the greeter session (Numlock, cursor theme, font, HiDPI) and who shows in the
+  user list (UID range, `HideUsers`, `HideShells`).
+- **Themes** — switch `[Theme] Current`, (re)install the bundled theme, enable
+  the service at boot, and **backups** (an automatic snapshot before every
+  "Apply"; restore any of them).
+
+## How it works
+
+- The GUI runs as a normal user and edits a **working copy** of the theme in
+  `~/.local/share/sddm-forge/work/maia-theme/` (seeded from the bundled theme).
+- The **preview pane** runs an offscreen QML renderer (PySide6) in a separate
+  process that watches the working copy's `theme.conf` and rewrites a PNG on
+  every change. The background video does not run offscreen: in "video" mode the
+  preview shows the **first frame** of the file (extracted with ffmpeg). Users
+  are fictitious. For a faithful render, the **Full screen** button opens
   `sddm-greeter-qt6 --test-mode`.
-- **Aplicar** chama **um** `pkexec` que, como root: faz backup, copia o tema para
-  `/usr/share/sddm/themes/maia-theme/` e escreve
-  `/etc/sddm.conf.d/10-maia.conf` (drop-in próprio — não toca nos defaults da
-  distro).
-- Nunca reinicia o `sddm.service` (isso derruba a sessão). Para ver o resultado:
-  logout, ou `systemctl restart sddm` de um TTY.
+- **Apply** calls **one** `pkexec` that, as root: makes a backup, copies the
+  theme to `/usr/share/sddm/themes/maia-theme/` and writes
+  `/etc/sddm.conf.d/10-maia.conf` (its own drop-in — it never touches the
+  distro defaults).
+- It never restarts `sddm.service` (that would kill your session). To see the
+  result: log out, or run `systemctl restart sddm` from a TTY.
 
-## Dependências
+## Dependencies
 
 ```
 sudo dnf install gtk4 libadwaita python3-gobject python3-pyside6 sddm polkit ffmpeg
 ```
 
-`python3-pyside6` e `ffmpeg` são só para a **prévia embutida**; sem eles o app
-funciona e a prévia cai para o botão "tela cheia".
+`python3-pyside6` and `ffmpeg` are only for the **embedded preview**; without
+them the app still works and the preview falls back to the "Full screen" button.
 
-## Rodar
-
-```
-./bin/sddm-forge            # direto do repo
-```
-
-## Instalar (usuário, sem root)
+## Run
 
 ```
-./install.sh                # ~/.local/bin/sddm-forge + lançador no menu
+./bin/sddm-forge            # straight from the repo
+```
+
+## Install (per user, no root)
+
+```
+./install.sh               # ~/.local/bin/sddm-forge + a menu launcher
 ```
 
 ## Assets
 
-Os vídeos de fundo em `theme/maia-theme/assets/` são grandes (~70 MB). Se for
-versionar, considere `git lfs track '*.mp4'` antes do primeiro commit, ou
-ignore-os e mantenha localmente.
+The background videos in `theme/maia-theme/assets/` are large (~70 MB). If you
+plan to version them, consider `git lfs track '*.mp4'` before the first commit,
+or ignore them and keep them locally.

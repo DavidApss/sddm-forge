@@ -1,46 +1,47 @@
-"""Schema e layout padrão da tela de login (árvore de componentes).
+"""Schema and default login-screen layout (component tree).
 
 layout.json / theme.conf[General].layoutJson
-===========================================
+============================================
 {
   "version": 1,
-  "root": [ <painel>, <painel>, ... ]      // pintados nesta ordem
+  "root": [ <panel>, <panel>, ... ]      // painted in this order
 }
 
-Painel (type = "panel")
------------------------
-  id           str      identificador único (gerado)
-  name         str      rótulo exibido na GUI
+Panel (type = "panel")
+----------------------
+  id           str      unique identifier (generated)
+  name         str      label shown in the GUI
   type         "panel"
-  orientation  "column" | "row"            // empilha vertical ou horizontal
+  orientation  "column" | "row"            // stack vertically or horizontally
   position     "top-left" | "top-center" | "top-right"
              | "center"
              | "bottom-left" | "bottom-center" | "bottom-right"
-             | {"x": <n|"n%">, "y": <n|"n%">}   // canto sup-esq do painel
+             | {"x": <n|"n%">, "y": <n|"n%">}   // panel's top-left corner
   width        "auto" | "fill" | "<n>%" | "<n>"     // n = px
   height       "auto" | "fill" | "<n>%" | "<n>"
-  align        "start" | "center" | "end"      // alinhamento dos filhos no eixo cruzado
-  gap          int      espaço entre filhos (px)
-  padding      int      recuo interno (px)
-  blur         0..100   desfoque do fundo atrás do painel
-  dim          0..100   escurecimento sobre o painel
-  bg           ""|"#rrggbb"|"#aarrggbb"      cor de fundo do painel
-  radius       int      canto arredondado (px)
-  children     [ <painel> | <folha> ]
+  align        "start" | "center" | "end"      // cross-axis alignment of children
+  gap          int      space between children (px)
+  padding      int      inner padding (px)
+  blur         0..100   blur of the background behind the panel
+  dim          0..100   darkening over the panel
+  bg           ""|"#rrggbb"|"#aarrggbb"      panel background color
+  radius       int      corner radius (px)
+  children     [ <panel> | <leaf> ]
 
-Folha
------
+Leaf
+----
   id     str
-  type   um de:
+  type   one of:
     clock date usernameRow userHandle password
     loginButton sessionButton rebootButton powerButton errorMessage
     text spacer
-  props por tipo:
-    usernameRow : carousel (bool, setas ‹ ›)
+  props by type:
+    usernameRow : carousel (bool, ‹ › arrows)
     text        : text (str), size (int)
     spacer      : size (int)
 
-Posições absolutas e tamanhos aceitam "%" (relativo à tela) ou número puro (px).
+Absolute positions and sizes accept "%" (relative to the screen) or a plain
+number (px).
 """
 
 from __future__ import annotations
@@ -54,22 +55,22 @@ _PANEL_KEYS = {
     "position": "top-left",
     "width": "auto",
     "height": "auto",
-    "align": "start",     # eixo cruzado (dos filhos)
-    "justify": "start",    # eixo principal (bloco de conteúdo no painel)
+    "align": "start",     # cross axis (of the children)
+    "justify": "start",   # main axis (content block within the panel)
     "gap": 0,
     "paddingX": 0,
     "paddingY": 0,
     "blur": 0,
-    "dim": 0,          # escurece (preto)
-    "tint": "",        # lavagem de cor translúcida — ""|"#aarrggbb"|"#rrggbb"
-    "noise": 0,        # granulado (efeito vidro/acrílico) 0..100
-    "bg": "",          # cor de fundo (mesma coisa que tint, mantido p/ compat)
-    "border": "",      # filete de borda — ""|"#aarrggbb"
+    "dim": 0,          # darken (black)
+    "tint": "",        # translucent color wash — ""|"#aarrggbb"|"#rrggbb"
+    "noise": 0,        # grain (glass/acrylic effect) 0..100
+    "bg": "",          # background color (same as tint, kept for compat)
+    "border": "",      # edge line — ""|"#aarrggbb"
     "borderWidth": 1,
     "radius": 0,
 }
 
-# folhas e seus props extras (com default)
+# leaves and their extra props (with default)
 LEAF_PROPS: dict[str, dict[str, object]] = {
     "clock": {},
     "date": {},
@@ -77,7 +78,7 @@ LEAF_PROPS: dict[str, dict[str, object]] = {
     "userHandle": {},
     "avatar": {"size": 76},
     "password": {},
-    "passwordToggle": {"text": "Mostrar senha"},
+    "passwordToggle": {"text": "Show password"},
     "loginButton": {},
     "sessionButton": {},
     "sessionName": {},
@@ -85,30 +86,30 @@ LEAF_PROPS: dict[str, dict[str, object]] = {
     "powerButton": {},
     "suspendButton": {},
     "errorMessage": {},
-    "text": {"text": "Texto", "size": 16},
+    "text": {"text": "Text", "size": 16},
     "separator": {"size": 40},
     "spacer": {"size": 20},
 }
 LEAF_TYPES = list(LEAF_PROPS)
 
 LEAF_LABELS = {
-    "clock": "Relógio (hora)",
-    "date": "Data / dia da semana",
-    "usernameRow": "Nome do usuário",
-    "userHandle": "@usuario",
-    "avatar": "Foto do usuário",
-    "password": "Campo de senha",
-    "passwordToggle": "Mostrar senha (checkbox)",
-    "loginButton": "Botão LOGIN",
-    "sessionButton": "Seletor de sessão",
-    "sessionName": "Nome da sessão (texto)",
-    "rebootButton": "Botão reiniciar",
-    "powerButton": "Botão desligar",
-    "suspendButton": "Botão suspender",
-    "errorMessage": "Mensagem de erro",
-    "text": "Texto livre",
-    "separator": "Separador (linha)",
-    "spacer": "Espaçador",
+    "clock": "Clock (time)",
+    "date": "Date / weekday",
+    "usernameRow": "Username",
+    "userHandle": "@username",
+    "avatar": "User avatar",
+    "password": "Password field",
+    "passwordToggle": "Show password (checkbox)",
+    "loginButton": "Login button",
+    "sessionButton": "Session picker",
+    "sessionName": "Session name (text)",
+    "rebootButton": "Restart button",
+    "powerButton": "Shut down button",
+    "suspendButton": "Suspend button",
+    "errorMessage": "Error message",
+    "text": "Free text",
+    "separator": "Separator (line)",
+    "spacer": "Spacer",
 }
 
 PANEL_POSITIONS = [
@@ -130,7 +131,7 @@ def make_leaf(type_: str) -> dict:
     return node
 
 
-def make_panel(name: str = "Painel", **over) -> dict:
+def make_panel(name: str = "Panel", **over) -> dict:
     node = {"id": new_id(), "type": "panel"}
     node.update(copy.deepcopy(_PANEL_KEYS))
     node["name"] = name
@@ -141,7 +142,7 @@ def make_panel(name: str = "Painel", **over) -> dict:
 
 def _seed() -> dict:
     controls = make_panel(
-        "Sessão / energia", orientation="row", position="top-left",
+        "Session / power", orientation="row", position="top-left",
         align="center", gap=26,
     )
     controls["children"] = [
@@ -149,7 +150,7 @@ def _seed() -> dict:
         make_leaf("powerButton"),
     ]
     clock = make_panel(
-        "Relógio", orientation="column", position="top-right", gap=4,
+        "Clock", orientation="column", position="top-right", gap=4,
     )
     clock["children"] = [make_leaf("date"), make_leaf("clock")]
 
@@ -170,7 +171,7 @@ def default_layout() -> dict:
 
 def normalize_panel(node: dict) -> dict:
     if node.get("type") != "panel":
-        # folha — preserva overrides (accent/size/bold) que não estão no spec
+        # leaf — keep overrides (accent/size/bold) not in the spec
         out = dict(node)
         out["id"] = node.get("id") or new_id()
         out["type"] = node.get("type", "text")
@@ -180,7 +181,7 @@ def normalize_panel(node: dict) -> dict:
     out = {"id": node.get("id") or new_id(), "type": "panel"}
     for key, dflt in _PANEL_KEYS.items():
         out[key] = node.get(key, dflt)
-    # migração: 'padding' único -> paddingX / paddingY
+    # migration: single 'padding' -> paddingX / paddingY
     if "padding" in node:
         out["paddingX"] = node.get("paddingX", node["padding"])
         out["paddingY"] = node.get("paddingY", node["padding"])
