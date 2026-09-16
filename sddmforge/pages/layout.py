@@ -145,7 +145,10 @@ def _render(window, refresh) -> Gtk.Widget:
         struct(lambda: cfg.reorder_node(dragged, ref, after))
 
     top = group("Panels", "Each panel is a container; pick what goes inside")
-    r = Adw.ButtonRow(title="Add panel", start_icon_name="list-add-symbolic")
+    # Adw.ButtonRow needs libadwaita >= 1.6; use a plain activatable ActionRow
+    # instead so this also works on Debian/Ubuntu LTS's older libadwaita.
+    r = Adw.ActionRow(title="Add panel", activatable=True)
+    r.add_prefix(Gtk.Image.new_from_icon_name("list-add-symbolic"))
     r.connect("activated", lambda _r: struct(lambda: cfg.add_panel()))
     top.add(r)
     p.add(top)

@@ -412,26 +412,33 @@ class Binder:
         labels: list[str] | None = None,
         subtitle: str = "",
     ) -> Adw.ActionRow:
+        # Plain linked Gtk.ToggleButtons instead of Adw.ToggleGroup/Adw.Toggle:
+        # those need libadwaita >= 1.7, which Debian/Ubuntu LTS doesn't ship yet.
         row = Adw.ActionRow(title=title)
         if subtitle:
             row.set_subtitle(subtitle)
-        group = Adw.ToggleGroup(valign=Gtk.Align.CENTER, can_shrink=False)
+        box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, valign=Gtk.Align.CENTER)
+        box.add_css_class("linked")
+        first_btn: Gtk.ToggleButton | None = None
         for opt, lab in zip(options, labels or options):
-            group.add(Adw.Toggle(name=opt, label=lab))
-        if value in options:
-            group.set_active_name(value)
-        else:
-            group.set_active(0)
+            btn = Gtk.ToggleButton(label=lab)
+            if first_btn is None:
+                first_btn = btn
+            else:
+                btn.set_group(first_btn)
+            if opt == value:
+                btn.set_active(True)
 
-        def on_notify(g, _p):
-            name = g.get_active_name()
-            if name in options:
-                setter(name)
-                self._changed()
+            def on_toggled(b, opt=opt):
+                if b.get_active():
+                    setter(opt)
+                    self._changed()
 
-        group.connect("notify::active", on_notify)
-        row.add_suffix(group)
-        row.set_activatable_widget(group)
+            btn.connect("toggled", on_toggled)
+            box.append(btn)
+        if value not in options and first_btn is not None:
+            first_btn.set_active(True)
+        row.add_suffix(box)
         return row
 
     def chips(

@@ -54,11 +54,22 @@ video) on top.
 
 ## Dependencies
 
+Fedora and friends:
+
 ```
 sudo dnf install gtk4 libadwaita python3-gobject python3-pyside6 sddm polkit ffmpeg
 ```
 
-`python3-pyside6` and `ffmpeg` are only for the **embedded preview**; without
+Debian / Ubuntu / Pop!_OS:
+
+```
+sudo apt install gir1.2-gtk-4.0 gir1.2-adw-1 python3-gi sddm policykit-1 ffmpeg
+```
+
+PySide6 isn't packaged for apt; install it with `pip install --user PySide6` if
+you want the embedded preview, or skip it.
+
+`python3-pyside6`/PySide6 and `ffmpeg` are only for the **embedded preview**; without
 them the app still works and the preview falls back to the "Full screen" button.
 
 ## Run
