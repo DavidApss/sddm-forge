@@ -15,21 +15,14 @@ Rectangle {
     // Fira Sans is a system font (already installed on Pop!_OS), resolved via fontconfig.
 
     // ---------------------------------------------------------------
-    // Background: grayscale -> blue -> color as you type, cycling
-    // between wallpapers while idle.
+    // Background: grayscale fades to color as you type.
     // ---------------------------------------------------------------
-
-    property var wallpaperSets: [
-        { gray: "assets/wallpaper1-gray.png", blue: "assets/wallpaper1-blue.png", color: "assets/wallpaper1-color.png", video: "assets/wallpaper1.mp4" },
-        { gray: "assets/wallpaper2-gray.png", blue: "assets/wallpaper2-blue.png", color: "assets/wallpaper2-color.png", video: "assets/wallpaper2.mp4" }
-    ]
-    property int currentWallpaper: 0
 
     // Static fallback frame, shown until the video reports it has a frame ready.
     Image {
         id: bgFallback
         anchors.fill: parent
-        source: wallpaperSets[currentWallpaper].color
+        source: "assets/wallpaper1-color.png"
         fillMode: Image.PreserveAspectCrop
         asynchronous: true
     }
@@ -37,7 +30,7 @@ Rectangle {
     Video {
         id: bgVideo
         anchors.fill: parent
-        source: wallpaperSets[currentWallpaper].video
+        source: "assets/wallpaper1.mp4"
         fillMode: VideoOutput.PreserveAspectCrop
         autoPlay: true
         muted: true
@@ -57,36 +50,11 @@ Rectangle {
     Image {
         id: bgGray
         anchors.fill: parent
-        source: wallpaperSets[currentWallpaper].gray
+        source: "assets/wallpaper1-gray.png"
         fillMode: Image.PreserveAspectCrop
         asynchronous: true
         opacity: 1 - typingReveal
         Behavior on opacity { NumberAnimation { duration: 350; easing.type: Easing.OutCubic } }
-    }
-
-    // Idle wallpaper rotation - swaps to the next set behind a brief dark
-    // veil, only while nobody is mid-login.
-    Rectangle {
-        id: swapVeil
-        anchors.fill: parent
-        color: "#141210"
-        opacity: 0
-        z: 5
-    }
-
-    SequentialAnimation {
-        id: wallpaperSwapAnim
-        NumberAnimation { target: swapVeil; property: "opacity"; to: 1; duration: 350 }
-        ScriptAction { script: currentWallpaper = (currentWallpaper + 1) % wallpaperSets.length }
-        PauseAnimation { duration: 150 }
-        NumberAnimation { target: swapVeil; property: "opacity"; to: 0; duration: 350 }
-    }
-
-    Timer {
-        interval: 45000
-        running: selectedUser === "" && wallpaperSets.length > 1
-        repeat: true
-        onTriggered: wallpaperSwapAnim.start()
     }
 
     Rectangle {
