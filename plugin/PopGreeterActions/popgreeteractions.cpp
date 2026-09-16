@@ -2,11 +2,35 @@
 
 #include <QProcess>
 #include <QDebug>
+#include <qnumeric.h>
 
 const char *const PopGreeterActions::kRevertScript =
     "/usr/local/sbin/pop-revert-to-cosmic.sh";
 
-PopGreeterActions::PopGreeterActions(QObject *parent) : QObject(parent) {}
+qreal PopGreeterActions::s_reveal = 0.0;
+QList<PopGreeterActions *> PopGreeterActions::s_instances;
+
+PopGreeterActions::PopGreeterActions(QObject *parent) : QObject(parent) {
+    s_instances.append(this);
+}
+
+PopGreeterActions::~PopGreeterActions() {
+    s_instances.removeAll(this);
+}
+
+qreal PopGreeterActions::reveal() const {
+    return s_reveal;
+}
+
+void PopGreeterActions::setReveal(qreal value) {
+    if (qFuzzyCompare(s_reveal + 1.0, value + 1.0)) {
+        return;
+    }
+    s_reveal = value;
+    for (PopGreeterActions *instance : qAsConst(s_instances)) {
+        emit instance->revealChanged();
+    }
+}
 
 bool PopGreeterActions::revertToCosmic() {
     // sudo -n: never prompt interactively. If the sudoers.d rule isn't

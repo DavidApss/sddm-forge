@@ -9,6 +9,25 @@ Rectangle {
     property string selectedUser: ""
     property string selectedDisplayName: ""
     property bool authenticating: false
+    property var userList: []
+
+    focus: true
+    Keys.onPressed: {
+        if ((event.key === Qt.Key_Return || event.key === Qt.Key_Enter) && selectedUser === "") {
+            selectDefaultUser()
+            event.accepted = true
+        }
+    }
+
+    function selectDefaultUser() {
+        if (userList.length === 0) return
+        var u = userList[0]
+        selectedUser = u.name
+        selectedDisplayName = u.realName !== "" ? u.realName : u.name
+        passwordField.text = ""
+        errorText.text = ""
+        passwordField.forceActiveFocus()
+    }
 
     PopGreeterActions { id: popActions }
 
@@ -39,13 +58,17 @@ Rectangle {
 
     // Grayscale mask over the color video. Fades fast as you type (a tease),
     // jumps to fully revealed the moment you submit, and dims back down on a
-    // failed login or if you clear the field.
+    // failed login or if you clear the field. sddm-greeter runs one QML
+    // engine per screen, so this screen's own typing drives popActions.reveal
+    // (shared process-wide, see the plugin) and every screen's mask reads it
+    // back - that's what keeps a multi-monitor setup in sync.
     property bool sessionRevealed: false
     property real typingReveal: {
         if (sessionRevealed || authenticating) return 1
         if (selectedUser === "") return 0
         return Math.min(passwordField.text.length / 5, 1) * 0.7
     }
+    onTypingRevealChanged: popActions.reveal = typingReveal
 
     Image {
         id: bgGray
@@ -53,7 +76,7 @@ Rectangle {
         source: "assets/wallpaper1-gray.png"
         fillMode: Image.PreserveAspectCrop
         asynchronous: true
-        opacity: 1 - typingReveal
+        opacity: 1 - Math.max(typingReveal, popActions.reveal)
         Behavior on opacity { NumberAnimation { duration: 350; easing.type: Easing.OutCubic } }
     }
 
@@ -150,6 +173,10 @@ Rectangle {
                 Column {
                     spacing: 10
                     width: 76
+
+                    Component.onCompleted: {
+                        root.userList.push({ name: model.name, realName: model.realName })
+                    }
 
                     Rectangle {
                         anchors.horizontalCenter: parent.horizontalCenter
