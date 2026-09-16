@@ -1,5 +1,6 @@
 import QtQuick 2.15
 import QtMultimedia 5.15
+import PopGreeterActions 1.0
 
 Rectangle {
     id: root
@@ -9,17 +10,26 @@ Rectangle {
     property string selectedDisplayName: ""
     property bool authenticating: false
 
+    PopGreeterActions { id: popActions }
+
     // Fira Sans is a system font (already installed on Pop!_OS), resolved via fontconfig.
 
     // ---------------------------------------------------------------
-    // Background: grayscale by default, color reveals on successful login
+    // Background: grayscale -> blue -> color as you type, cycling
+    // between wallpapers while idle.
     // ---------------------------------------------------------------
+
+    property var wallpaperSets: [
+        { gray: "assets/wallpaper1-gray.png", blue: "assets/wallpaper1-blue.png", color: "assets/wallpaper1-color.png", video: "assets/wallpaper1.mp4" },
+        { gray: "assets/wallpaper2-gray.png", blue: "assets/wallpaper2-blue.png", color: "assets/wallpaper2-color.png", video: "assets/wallpaper2.mp4" }
+    ]
+    property int currentWallpaper: 0
 
     // Static fallback frame, shown until the video reports it has a frame ready.
     Image {
         id: bgFallback
         anchors.fill: parent
-        source: "assets/wallpaper-color.png"
+        source: wallpaperSets[currentWallpaper].color
         fillMode: Image.PreserveAspectCrop
         asynchronous: true
     }
@@ -27,21 +37,56 @@ Rectangle {
     Video {
         id: bgVideo
         anchors.fill: parent
-        source: "assets/wallpaper.mp4"
+        source: wallpaperSets[currentWallpaper].video
         fillMode: VideoOutput.PreserveAspectCrop
         autoPlay: true
         muted: true
         loops: MediaPlayer.Infinite
     }
 
-    // Grayscale still frame masks the color video until a successful login.
+    // Grayscale mask over the color video. Fades fast as you type (a tease),
+    // jumps to fully revealed the moment you submit, and dims back down on a
+    // failed login or if you clear the field.
+    property bool sessionRevealed: false
+    property real typingReveal: {
+        if (sessionRevealed || authenticating) return 1
+        if (selectedUser === "") return 0
+        return Math.min(passwordField.text.length / 5, 1) * 0.7
+    }
+
     Image {
         id: bgGray
         anchors.fill: parent
-        source: "assets/wallpaper-gray.png"
+        source: wallpaperSets[currentWallpaper].gray
         fillMode: Image.PreserveAspectCrop
         asynchronous: true
-        Behavior on opacity { NumberAnimation { duration: 900; easing.type: Easing.OutCubic } }
+        opacity: 1 - typingReveal
+        Behavior on opacity { NumberAnimation { duration: 350; easing.type: Easing.OutCubic } }
+    }
+
+    // Idle wallpaper rotation - swaps to the next set behind a brief dark
+    // veil, only while nobody is mid-login.
+    Rectangle {
+        id: swapVeil
+        anchors.fill: parent
+        color: "#141210"
+        opacity: 0
+        z: 5
+    }
+
+    SequentialAnimation {
+        id: wallpaperSwapAnim
+        NumberAnimation { target: swapVeil; property: "opacity"; to: 1; duration: 350 }
+        ScriptAction { script: currentWallpaper = (currentWallpaper + 1) % wallpaperSets.length }
+        PauseAnimation { duration: 150 }
+        NumberAnimation { target: swapVeil; property: "opacity"; to: 0; duration: 350 }
+    }
+
+    Timer {
+        interval: 45000
+        running: selectedUser === "" && wallpaperSets.length > 1
+        repeat: true
+        onTriggered: wallpaperSwapAnim.start()
     }
 
     Rectangle {
@@ -194,93 +239,129 @@ Rectangle {
     // Authentication
     // ---------------------------------------------------------------
 
-    Column {
-        id: authView
+    Rectangle {
+        id: authCard
         visible: selectedUser !== ""
         anchors.horizontalCenter: parent.horizontalCenter
         anchors.verticalCenter: parent.verticalCenter
-        anchors.verticalCenterOffset: 40
-        spacing: 18
+        anchors.verticalCenterOffset: 30
+        width: 340
+        height: authColumn.height + 64
+        radius: 22
+        color: "#c7211d19"
+        border.width: 1
+        border.color: "#1effffff"
 
-        Rectangle {
+        Column {
+            id: authColumn
             anchors.horizontalCenter: parent.horizontalCenter
-            width: 108; height: 108; radius: 54
-            color: "#2b2723"
-            border.width: 2
-            border.color: "#e07828"
+            anchors.top: parent.top
+            anchors.topMargin: 32
+            spacing: 16
+            width: 280
 
-            Item {
-                anchors.centerIn: parent
-                width: 46; height: 46
-                Rectangle { x: 15; y: 2; width: 16; height: 16; radius: 8; color: "#f7f4f1" }
-                Rectangle { x: 4; y: 22; width: 38; height: 22; radius: 11; color: "#f7f4f1" }
-            }
-        }
+            Rectangle {
+                anchors.horizontalCenter: parent.horizontalCenter
+                width: 92; height: 92; radius: 46
+                color: "#2b2723"
+                border.width: 2
+                border.color: "#e07828"
 
-        Text {
-            anchors.horizontalCenter: parent.horizontalCenter
-            text: selectedDisplayName
-            color: "#f7f4f1"
-            font.family: "Fira Sans"
-            font.weight: Font.DemiBold
-            font.pixelSize: 18
-        }
-
-        Rectangle {
-            anchors.horizontalCenter: parent.horizontalCenter
-            width: 280; height: 46; radius: 23
-            color: "#0fffffff"
-            border.width: 1
-            border.color: passwordField.activeFocus ? "#99e07828" : "#26ffffff"
-
-            TextInput {
-                id: passwordField
-                anchors.fill: parent
-                anchors.margins: 2
-                echoMode: TextInput.Password
-                color: "#f7f4f1"
-                font.family: "Fira Sans"
-                font.pixelSize: 16
-                horizontalAlignment: Text.AlignHCenter
-                verticalAlignment: Text.AlignVCenter
-                clip: true
-                onAccepted: doLogin()
+                Item {
+                    anchors.centerIn: parent
+                    width: 40; height: 40
+                    Rectangle { x: 13; y: 2; width: 14; height: 14; radius: 7; color: "#f7f4f1" }
+                    Rectangle { x: 3; y: 19; width: 34; height: 19; radius: 10; color: "#f7f4f1" }
+                }
             }
 
             Text {
-                anchors.centerIn: parent
-                text: "Senha"
-                color: "#4df7f4f1"
+                anchors.horizontalCenter: parent.horizontalCenter
+                text: selectedDisplayName
+                color: "#f7f4f1"
                 font.family: "Fira Sans"
-                font.pixelSize: 16
-                visible: passwordField.text.length === 0
+                font.weight: Font.DemiBold
+                font.pixelSize: 18
             }
-        }
 
-        Text {
-            id: errorText
-            anchors.horizontalCenter: parent.horizontalCenter
-            color: "#e8926a"
-            font.family: "Fira Sans"
-            font.pixelSize: 13
-            height: 18
-        }
+            Rectangle {
+                width: parent.width; height: 46; radius: 23
+                color: "#14ffffff"
+                border.width: 1
+                border.color: passwordField.activeFocus ? "#99e07828" : "#26ffffff"
 
-        Text {
-            anchors.horizontalCenter: parent.horizontalCenter
-            text: "Voltar"
-            color: "#80f7f4f1"
-            font.family: "Fira Sans"
-            font.pixelSize: 13
+                TextInput {
+                    id: passwordField
+                    anchors.fill: parent
+                    anchors.leftMargin: 20
+                    anchors.rightMargin: 20
+                    echoMode: TextInput.Password
+                    color: "#f7f4f1"
+                    font.family: "Fira Sans"
+                    font.pixelSize: 16
+                    verticalAlignment: Text.AlignVCenter
+                    clip: true
+                    onAccepted: doLogin()
+                }
 
-            MouseArea {
-                anchors.fill: parent
-                cursorShape: Qt.PointingHandCursor
-                onClicked: {
-                    selectedUser = ""
-                    selectedDisplayName = ""
-                    passwordField.text = ""
-                    errorText.text = ""
+                Text {
+                    anchors.left: parent.left
+                    anchors.leftMargin: 20
+                    anchors.verticalCenter: parent.verticalCenter
+                    text: "Senha"
+                    color: "#4df7f4f1"
+                    font.family: "Fira Sans"
+                    font.pixelSize: 16
+                    visible: passwordField.text.length === 0
+                }
+            }
+
+            Rectangle {
+                width: parent.width; height: 44; radius: 22
+                color: loginMouse.pressed ? "#c26620" : "#e07828"
+
+                Text {
+                    anchors.centerIn: parent
+                    text: authenticating ? "Entrando…" : "Entrar"
+                    color: "#1a1613"
+                    font.family: "Fira Sans"
+                    font.weight: Font.DemiBold
+                    font.pixelSize: 15
+                }
+
+                MouseArea {
+                    id: loginMouse
+                    anchors.fill: parent
+                    cursorShape: Qt.PointingHandCursor
+                    onClicked: doLogin()
+                }
+            }
+
+            Text {
+                id: errorText
+                anchors.horizontalCenter: parent.horizontalCenter
+                color: "#e8926a"
+                font.family: "Fira Sans"
+                font.pixelSize: 13
+                height: 16
+            }
+
+            Text {
+                anchors.horizontalCenter: parent.horizontalCenter
+                text: "Voltar"
+                color: "#80f7f4f1"
+                font.family: "Fira Sans"
+                font.pixelSize: 13
+
+                MouseArea {
+                    anchors.fill: parent
+                    cursorShape: Qt.PointingHandCursor
+                    onClicked: {
+                        selectedUser = ""
+                        selectedDisplayName = ""
+                        passwordField.text = ""
+                        errorText.text = ""
+                    }
                 }
             }
         }
@@ -297,7 +378,7 @@ Rectangle {
         target: sddm
         function onLoginSucceeded() {
             errorText.text = ""
-            bgGray.opacity = 0
+            sessionRevealed = true
         }
         function onLoginFailed() {
             authenticating = false
@@ -308,100 +389,135 @@ Rectangle {
     }
 
     // ---------------------------------------------------------------
-    // Power menu
+    // Power actions - always visible, bottom-right
     // ---------------------------------------------------------------
 
-    Rectangle {
-        id: powerBtn
+    Row {
         anchors.bottom: parent.bottom
         anchors.right: parent.right
-        anchors.margins: 44
-        width: 44; height: 44; radius: 22
-        color: powerMouse.containsMouse ? "#14ffffff" : "#08ffffff"
-        border.width: 1
-        border.color: "#24ffffff"
+        anchors.margins: 40
+        spacing: 22
 
-        Text {
-            anchors.centerIn: parent
-            text: "⏻"
-            color: "#c8f7f4f1"
-            font.pixelSize: 18
-        }
-
-        MouseArea {
-            id: powerMouse
-            anchors.fill: parent
-            hoverEnabled: true
-            cursorShape: Qt.PointingHandCursor
-            onClicked: powerMenu.visible = !powerMenu.visible
-        }
-    }
-
-    Column {
-        id: powerMenu
-        visible: false
-        anchors.bottom: powerBtn.top
-        anchors.right: powerBtn.right
-        anchors.bottomMargin: 12
-        spacing: 2
-
-        Rectangle {
-            width: 176; height: childrenRect.height + 12
-            radius: 14
-            color: "#f0211d19"
-            border.width: 1
-            border.color: "#1fffffff"
+        Repeater {
+            model: [
+                { label: "Suspender", glyph: "☾", enabled: sddm.canSuspend, action: function() { sddm.suspend() } },
+                { label: "Reiniciar", glyph: "↻", enabled: sddm.canReboot, action: function() { sddm.reboot() } },
+                { label: "Desligar", glyph: "⏻", enabled: sddm.canPowerOff, action: function() { sddm.powerOff() } }
+            ]
 
             Column {
-                anchors.fill: parent
-                anchors.margins: 6
-                spacing: 2
+                spacing: 6
 
-                Repeater {
-                    model: [
-                        { label: "Suspender", enabled: sddm.canSuspend, action: function() { sddm.suspend() } },
-                        { label: "Reiniciar", enabled: sddm.canReboot, action: function() { sddm.reboot() } },
-                        { label: "Desligar", enabled: sddm.canPowerOff, action: function() { sddm.powerOff() } }
-                    ]
+                Rectangle {
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    width: 44; height: 44; radius: 22
+                    color: powerItemMouse.containsMouse ? "#14ffffff" : "#08ffffff"
+                    border.width: 1
+                    border.color: "#24ffffff"
 
-                    Rectangle {
-                        visible: modelData.enabled
-                        width: parent.width
-                        height: visible ? 38 : 0
-                        radius: 9
-                        color: itemMouse.containsMouse ? "#12ffffff" : "transparent"
-
-                        Text {
-                            anchors.left: parent.left
-                            anchors.leftMargin: 12
-                            anchors.verticalCenter: parent.verticalCenter
-                            text: modelData.label
-                            color: "#d9f7f4f1"
-                            font.family: "Fira Sans"
-                            font.pixelSize: 14
-                        }
-
-                        MouseArea {
-                            id: itemMouse
-                            anchors.fill: parent
-                            hoverEnabled: true
-                            cursorShape: Qt.PointingHandCursor
-                            onClicked: {
-                                powerMenu.visible = false
-                                modelData.action()
-                            }
-                        }
+                    Text {
+                        anchors.centerIn: parent
+                        text: modelData.glyph
+                        color: "#c8f7f4f1"
+                        font.pixelSize: 17
                     }
+
+                    MouseArea {
+                        id: powerItemMouse
+                        anchors.fill: parent
+                        hoverEnabled: true
+                        cursorShape: Qt.PointingHandCursor
+                        onClicked: modelData.action()
+                    }
+                }
+
+                Text {
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    text: modelData.label
+                    color: "#8cf7f4f1"
+                    font.family: "Fira Sans"
+                    font.pixelSize: 11
                 }
             }
         }
     }
 
-    MouseArea {
-        z: -1
-        anchors.fill: parent
-        onClicked: powerMenu.visible = false
-        enabled: powerMenu.visible
+    // ---------------------------------------------------------------
+    // Emergency switch: revert to cosmic-greeter (bottom-left)
+    // Two-tap confirm: first tap arms it, second tap (within 4s) fires
+    // the narrowly-scoped, sudoers-gated revert script via the
+    // PopGreeterActions plugin.
+    // ---------------------------------------------------------------
+
+    property bool revertArmed: false
+    property bool revertFired: false
+
+    Timer {
+        id: revertDisarmTimer
+        interval: 4000
+        onTriggered: revertArmed = false
+    }
+
+    Item {
+        id: revertSwitch
+        anchors.bottom: parent.bottom
+        anchors.left: parent.left
+        anchors.margins: 40
+        width: revertRow.width
+        height: revertRow.height
+        opacity: revertFired ? 1 : 0.55
+
+        Row {
+            id: revertRow
+            spacing: 10
+
+            Rectangle {
+                id: revertTrack
+                width: 40; height: 22; radius: 11
+                anchors.verticalCenter: parent.verticalCenter
+                color: root.revertArmed ? "#e07828" : "#26ffffff"
+                border.width: 1
+                border.color: "#26ffffff"
+                Behavior on color { ColorAnimation { duration: 150 } }
+
+                Rectangle {
+                    width: 18; height: 18; radius: 9
+                    anchors.verticalCenter: parent.verticalCenter
+                    x: root.revertArmed ? parent.width - width - 2 : 2
+                    color: "#f7f4f1"
+                    Behavior on x { NumberAnimation { duration: 150; easing.type: Easing.OutCubic } }
+                }
+            }
+
+            Text {
+                anchors.verticalCenter: parent.verticalCenter
+                text: root.revertFired ? "Revertendo para o COSMIC…" : (root.revertArmed ? "Toque de novo para confirmar" : "Usar login padrão do COSMIC")
+                color: root.revertArmed ? "#e07828" : "#80f7f4f1"
+                font.family: "Fira Sans"
+                font.pixelSize: 12
+            }
+        }
+
+        MouseArea {
+            anchors.fill: parent
+            anchors.margins: -8
+            enabled: !root.revertFired
+            cursorShape: Qt.PointingHandCursor
+            onClicked: {
+                if (!root.revertArmed) {
+                    root.revertArmed = true
+                    revertDisarmTimer.restart()
+                } else {
+                    revertDisarmTimer.stop()
+                    root.revertFired = true
+                    var ok = popActions.revertToCosmic()
+                    if (!ok) {
+                        root.revertFired = false
+                        root.revertArmed = false
+                    }
+                }
+            }
+        }
     }
 
 }
