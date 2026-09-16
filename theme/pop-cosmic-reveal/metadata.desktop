@@ -1,0 +1,12 @@
+[SddmGreeterTheme]
+Name=pop-cosmic-reveal
+Description=Grayscale-to-color COSMIC wallpaper reveal, in the Pop!_OS visual language
+Author=David
+Copyright=(c) 2026
+License=MIT
+Type=sddm-theme
+Version=1.0
+MainScript=Main.qml
+ConfigFile=theme.conf
+Theme-Id=pop-cosmic-reveal
+Theme-API=2.0
